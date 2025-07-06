@@ -4,8 +4,10 @@ import (
 
 	"fmt"
 	"log"
-	"time"
+	"strconv"
+	//"time"
 
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,14 +23,6 @@ const (
 
 func dsn(dbName string) string{
 	return fmt.Sprintf("%s:%s@tcp(%s)/%s",username,password,hostname,dbName)
-}
-
-type Book struct{
-	gorm.Model
-	ID int `gorm:"primaryKey"`
-	Title string
-	Author string
-	CreateedAt time.Time
 }
 
 func main() {
@@ -49,13 +43,71 @@ func main() {
 	if err != nil{
 		log.Printf("Failed to migrate: %v", err)
 	}
-	log.Println("Auto Migration completed")
-	//------------------------------------------------------------
+	//log.Println("Auto Migration completed")
+	//------------------------------------------------------------ 
 
-	//Insert
-	db.Create(&Book{
-		Title: "Ironman",
-		Author: "Marvel",
-		CreateedAt: time.Now(),
+
+	//Set up fiber
+	//------------------------------------------------------------ 
+	app := fiber.New()
+	//------------------------------------------------------------ 
+
+	// Create
+	//------------------------------------------------------------ 
+	app.Post("/book",func(c *fiber.Ctx) error {
+		book := new(Book)
+
+		if err := c.BodyParser(book); err != nil{
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		createBook(db,book)
+		return c.JSON(book)
 	})
+	//------------------------------------------------------------ 
+
+	// Read All
+	//------------------------------------------------------------ 
+	app.Get("/books" ,func(c *fiber.Ctx) error {
+		return c.JSON(getBooks(db))
+	})
+
+	// Read id
+	//------------------------------------------------------------ 
+	app.Get("/book/:id",func(c *fiber.Ctx) error{
+		bookId , err := strconv.Atoi(c.Params("id"))
+		if err != nil{
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+		book := getBook(db,bookId)
+		return c.JSON(book)
+	})
+	//------------------------------------------------------------ 
+
+	// Update
+	//------------------------------------------------------------ 
+	app.Put("/book/:id",func(c *fiber.Ctx) error{
+		bookId , err := strconv.Atoi(c.Params("id"))
+
+		if err != nil{
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		
+		book := new(Book)
+
+		if err := c.BodyParser(book); err != nil{
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		
+		book.ID = bookId
+		err = updateBook(db,book)
+
+		if err != nil{
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+		return c.JSON(book)
+	})
+
+	log.Printf("Server is Running on Port 6000")
+	app.Listen(":6000")
 }
