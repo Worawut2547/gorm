@@ -26,6 +26,7 @@ func createBook(db *gorm.DB , book *Book){
 }
 
 func getBook(db *gorm.DB , id int) *Book{
+	
 	var book Book
 	result := db.First(&book , id)
 	if result.Error != nil{
@@ -52,11 +53,13 @@ func updateBook(db *gorm.DB , book *Book) error{
 	return nil
 }
 
-func deleteBook(db *gorm.DB , id int){
+func deleteBook(db *gorm.DB , id int)  error{
 	var book Book
 	result := db.Delete(&book , id)
+
 	if result.Error != nil{
-		log.Fatalf("Delete Book Failed: %v",result.Error)
+		return result.Error
 	}
-	fmt.Println("Delete Book Successful")
+
+	return nil
 }

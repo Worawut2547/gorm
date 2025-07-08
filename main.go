@@ -98,7 +98,7 @@ func main() {
 		if err := c.BodyParser(book); err != nil{
 			return c.SendStatus(fiber.StatusBadRequest)
 		}
-		
+
 		book.ID = bookId
 		err = updateBook(db,book)
 
@@ -107,7 +107,28 @@ func main() {
 		}
 		return c.JSON(book)
 	})
+	//------------------------------------------------------------
+	
+	// Delete
+	//------------------------------------------------------------
+	app.Delete("/book/:id",func(c *fiber.Ctx) error{
+		id , err := strconv.Atoi(c.Params("id"))
+		if err != nil{
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
 
-	log.Printf("Server is Running on Port 6000")
+		err = deleteBook(db,id)
+
+		if err != nil{
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		return c.JSON(fiber.Map{
+			"Message": "Delete Complete",
+		})
+	})
+	//------------------------------------------------------------
+
+	log.Println("Server is Running on Port 6000")
 	app.Listen(":6000")
 }
